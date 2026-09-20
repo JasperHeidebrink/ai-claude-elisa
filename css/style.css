@@ -212,6 +212,22 @@ body {
   color: var(--muted);
 }
 
+.reset-btn {
+  display: block;
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0;
+  background: none;
+  border: none;
+  color: var(--bad);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.reset-btn:hover {
+  color: #8a1f1f;
+}
+
 .practice-topbar {
   display: flex;
   justify-content: space-between;

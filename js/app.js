@@ -60,6 +60,22 @@ function recordMistake(levelId, diagnosis) {
   saveStats(stats);
 }
 
+function hasAnyStats(stats) {
+  return (
+    Object.keys(stats.levels).length > 0 ||
+    Object.keys(stats.bestToets).length > 0 ||
+    Object.keys(stats.mistakes || {}).length > 0
+  );
+}
+
+function clearStats() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    // localStorage niet beschikbaar - niets te wissen
+  }
+}
+
 function recordToetsResult(levelId, score, total) {
   const stats = loadStats();
   const key = String(levelId);
@@ -93,6 +109,7 @@ const el = {
   modeButtons: Array.from(document.querySelectorAll('.mode-btn')),
   startBtn: document.getElementById('start-btn'),
   statsBox: document.getElementById('stats-box'),
+  resetBtn: document.getElementById('reset-btn'),
 
   stopBtn: document.getElementById('stop-btn'),
   progressIndicator: document.getElementById('progress-indicator'),
@@ -205,10 +222,20 @@ function renderStatsBox() {
     });
 
   el.statsBox.innerHTML = lines.join('<br>');
+  el.resetBtn.hidden = !hasAnyStats(stats);
 }
 
 el.modeButtons.forEach((btn) => btn.addEventListener('click', () => selectMode(btn.dataset.mode)));
 el.startBtn.addEventListener('click', startSession);
+el.resetBtn.addEventListener('click', () => {
+  const ok = window.confirm(
+    'Weet je zeker dat je alle voortgang wilt wissen? Je scores, beste toetsresultaten en bijgehouden denkfouten worden dan permanent verwijderd. Dit kan niet ongedaan gemaakt worden.'
+  );
+  if (!ok) return;
+  clearStats();
+  renderLevelList();
+  renderStatsBox();
+});
 
 // --- Sessie starten -------------------------------------------------------------
 
