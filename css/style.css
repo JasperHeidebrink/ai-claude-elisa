@@ -1,0 +1,370 @@
+:root {
+  --bg: #f5f7fb;
+  --card-bg: #ffffff;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --primary: #2f5fb0;
+  --primary-dark: #234a8c;
+  --good: #1c8a4a;
+  --good-bg: #e6f6ec;
+  --bad: #c23b3b;
+  --bad-bg: #fbe9e9;
+  --border: #e0e4ec;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.app-header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.app-header h1 span {
+  font-weight: 400;
+  opacity: 0.85;
+  font-size: 1rem;
+  display: block;
+}
+
+.subtitle {
+  margin: 0.4rem 0 0;
+  opacity: 0.9;
+}
+
+.app-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.screen h2 {
+  font-size: 1.1rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.screen h2:first-child {
+  margin-top: 0;
+}
+
+.level-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.level-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.level-btn strong {
+  display: block;
+}
+
+.level-btn small {
+  color: var(--muted);
+}
+
+.level-btn:hover {
+  border-color: var(--primary);
+}
+
+.level-btn.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(47, 95, 176, 0.25);
+}
+
+.level-btn .level-stats {
+  float: right;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.uitleg-box {
+  background: #eef3fc;
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  margin: 0.75rem 0;
+}
+
+.uitleg-box h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.uitleg-box ul {
+  margin: 0 0 0.5rem;
+  padding-left: 1.2rem;
+}
+
+.uitleg-box .example {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.mode-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+@media (max-width: 520px) {
+  .mode-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mode-btn {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  cursor: pointer;
+  text-align: left;
+}
+
+.mode-btn strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.mode-btn span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mode-btn.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(47, 95, 176, 0.25);
+}
+
+.primary-btn {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1.2rem;
+}
+
+.primary-btn:disabled {
+  background: #a9b8d6;
+  cursor: not-allowed;
+}
+
+.primary-btn:not(:disabled):hover {
+  background: var(--primary-dark);
+}
+
+.secondary-btn {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
+}
+
+.stats-box {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.practice-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+#progress-indicator {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.problem-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+}
+
+.problem-level-label {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.problem-text {
+  font-size: 1.7rem;
+  font-weight: 600;
+  margin: 0 0 1.25rem;
+  letter-spacing: 0.02em;
+}
+
+.answer-label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+}
+
+.answer-input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  font-size: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.answer-input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.feedback {
+  margin-top: 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.feedback.correct {
+  background: var(--good-bg);
+  color: var(--good);
+}
+
+.feedback.incorrect {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.steps-box {
+  margin-top: 1rem;
+  background: #f7f9fc;
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem 0.9rem 1.6rem;
+}
+
+.steps-box h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.steps-box ol {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.steps-box li {
+  margin-bottom: 0.3rem;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+
+.problem-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.3rem;
+  flex-wrap: wrap;
+}
+
+.problem-actions .primary-btn,
+.problem-actions .secondary-btn {
+  flex: 1;
+  margin-top: 0;
+  min-width: 140px;
+}
+
+.session-score {
+  margin-top: 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.results-summary {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.results-list {
+  padding-left: 1.2rem;
+}
+
+.results-list li {
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.results-list .r-question {
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-weight: 600;
+}
+
+.results-list .r-your-answer {
+  margin: 0.2rem 0;
+}
+
+.results-list .r-correct {
+  color: var(--good);
+}
+
+.results-list .r-incorrect {
+  color: var(--bad);
+}
+
+.app-footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 1rem;
+}
+
+[hidden] {
+  display: none !important;
+}
