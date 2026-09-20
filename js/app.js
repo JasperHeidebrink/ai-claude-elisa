@@ -1,5 +1,5 @@
 import {
-  LEVELS,
+  TOPICS,
   generateProblem,
   generateMixedProblem,
   checkAnswer,
@@ -8,14 +8,18 @@ import {
   MISTAKE_TIPS,
 } from './generators.js';
 
-const STORAGE_KEY = 'wiskunde3vwo-vergelijkingen-v1';
+const STORAGE_KEY = 'wiskunde3vwo-oefentool-v1';
 const TOETS_LENGTH = 10;
-const MIXED_ID = 0; // pseudo-niveau: gemengd door elkaar
+const MIXED_ID = 0; // pseudo-niveau: gemengd door elkaar, binnen één onderwerp
 
 // Deze diagnose-ids zijn geen echt herkend denkpatroon (leeg antwoord of
 // "vergelijk maar met de uitwerking") en tellen daarom niet mee als
 // veelgemaakte fout in de statistieken.
 const UNTRACKED_MISTAKE_IDS = new Set(['algemeen', 'geen-antwoord']);
+
+function statsKey(topicId, levelId) {
+  return `${topicId}:${levelId}`;
+}
 
 // --- Voortgang opslaan (localStorage) --------------------------------------
 
@@ -38,19 +42,19 @@ function saveStats(stats) {
   }
 }
 
-function recordAnswer(levelId, wasCorrect) {
+function recordAnswer(topicId, levelId, wasCorrect) {
   const stats = loadStats();
-  const key = String(levelId);
+  const key = statsKey(topicId, levelId);
   if (!stats.levels[key]) stats.levels[key] = { correct: 0, wrong: 0 };
   if (wasCorrect) stats.levels[key].correct += 1;
   else stats.levels[key].wrong += 1;
   saveStats(stats);
 }
 
-function recordMistake(levelId, diagnosis) {
+function recordMistake(topicId, levelId, diagnosis) {
   if (!diagnosis || UNTRACKED_MISTAKE_IDS.has(diagnosis.id)) return;
   const stats = loadStats();
-  const key = String(levelId);
+  const key = statsKey(topicId, levelId);
   if (!stats.mistakes[key]) stats.mistakes[key] = {};
   const existing = stats.mistakes[key][diagnosis.id];
   stats.mistakes[key][diagnosis.id] = {
@@ -76,9 +80,9 @@ function clearStats() {
   }
 }
 
-function recordToetsResult(levelId, score, total) {
+function recordToetsResult(topicId, levelId, score, total) {
   const stats = loadStats();
-  const key = String(levelId);
+  const key = statsKey(topicId, levelId);
   const existing = stats.bestToets[key];
   if (!existing || score / total > existing.score / existing.total) {
     stats.bestToets[key] = { score, total, date: new Date().toLocaleDateString('nl-NL') };
@@ -89,6 +93,7 @@ function recordToetsResult(levelId, score, total) {
 // --- Status -----------------------------------------------------------------
 
 const state = {
+  selectedTopic: null,
   selectedLevel: null,
   selectedMode: null,
   session: null, // gevuld bij start van oefenen/toets
@@ -101,6 +106,7 @@ const el = {
   practiceScreen: document.getElementById('practice-screen'),
   resultsScreen: document.getElementById('results-screen'),
 
+  topicList: document.getElementById('topic-list'),
   levelList: document.getElementById('level-list'),
   uitlegBox: document.getElementById('level-uitleg'),
   uitlegTitle: document.getElementById('uitleg-title'),
@@ -116,6 +122,7 @@ const el = {
   problemLevelLabel: document.getElementById('problem-level-label'),
   focusTip: document.getElementById('focus-tip'),
   problemText: document.getElementById('problem-text'),
+  answerLabel: document.getElementById('answer-label'),
   answerInput: document.getElementById('answer-input'),
   feedback: document.getElementById('feedback'),
   mistakeFeedback: document.getElementById('mistake-feedback'),
@@ -135,17 +142,57 @@ const el = {
 
 // --- Setup-scherm -------------------------------------------------------------
 
-function levelName(id) {
-  if (id === MIXED_ID) return 'Gemengd (alle niveaus)';
-  const lvl = LEVELS.find((l) => l.id === id);
-  return lvl ? `Niveau ${lvl.id}: ${lvl.title}` : `Niveau ${id}`;
+function currentTopic() {
+  return TOPICS.find((t) => t.id === state.selectedTopic) || null;
+}
+
+function levelName(topicId, levelId) {
+  const topic = TOPICS.find((t) => t.id === topicId);
+  if (!topic) return `${topicId} / ${levelId}`;
+  if (levelId === MIXED_ID) return `${topic.title} (gemengd)`;
+  const lvl = topic.levels.find((l) => l.id === levelId);
+  return lvl ? `${topic.title} – niveau ${lvl.id}: ${lvl.title}` : `${topic.title} / ${levelId}`;
+}
+
+function renderTopicList() {
+  el.topicList.innerHTML = '';
+  TOPICS.forEach((topic) => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    btn.dataset.topic = topic.id;
+    if (state.selectedTopic === topic.id) btn.classList.add('selected');
+    btn.innerHTML = `<strong>${topic.title}</strong>`;
+    btn.addEventListener('click', () => selectTopic(topic.id));
+    el.topicList.appendChild(btn);
+  });
+}
+
+function selectTopic(topicId) {
+  state.selectedTopic = topicId;
+  state.selectedLevel = null;
+  renderTopicList();
+  renderLevelList();
+  updateUitlegBox();
+  updateStartButton();
 }
 
 function renderLevelList() {
-  const stats = loadStats();
+  const topic = currentTopic();
   el.levelList.innerHTML = '';
 
-  const allButtons = [...LEVELS, { id: MIXED_ID, title: 'Gemengd (alle niveaus)', example: 'Een mix van alle soorten vergelijkingen, zoals bij een echte toets.' }];
+  if (!topic) {
+    const hint = document.createElement('p');
+    hint.className = 'level-hint';
+    hint.textContent = 'Kies eerst een onderwerp hierboven.';
+    el.levelList.appendChild(hint);
+    return;
+  }
+
+  const stats = loadStats();
+  const allButtons = [
+    ...topic.levels,
+    { id: MIXED_ID, title: 'Gemengd (alle niveaus)', example: `Een mix van alle soorten opgaven binnen ${topic.title.toLowerCase()}, zoals bij een echte toets.` },
+  ];
 
   allButtons.forEach((lvl) => {
     const btn = document.createElement('button');
@@ -153,8 +200,8 @@ function renderLevelList() {
     btn.dataset.level = String(lvl.id);
     if (state.selectedLevel === lvl.id) btn.classList.add('selected');
 
-    const s = stats.levels[String(lvl.id)];
-    const statsText = s && (s.correct + s.wrong > 0) ? `${s.correct}/${s.correct + s.wrong} goed` : '';
+    const s = stats.levels[statsKey(topic.id, lvl.id)];
+    const statsText = s && s.correct + s.wrong > 0 ? `${s.correct}/${s.correct + s.wrong} goed` : '';
 
     btn.innerHTML = `
       <span class="level-stats">${statsText}</span>
@@ -173,18 +220,19 @@ function selectLevel(id) {
 }
 
 function updateUitlegBox() {
-  if (state.selectedLevel === null) {
+  const topic = currentTopic();
+  if (!topic || state.selectedLevel === null) {
     el.uitlegBox.hidden = true;
     return;
   }
   if (state.selectedLevel === MIXED_ID) {
     el.uitlegTitle.textContent = 'Gemengd (alle niveaus)';
-    el.uitlegList.innerHTML = '<li>Bij elke opgave wordt willekeurig een van de vijf niveaus gekozen. Handig als algehele toetsvoorbereiding.</li>';
+    el.uitlegList.innerHTML = `<li>Bij elke opgave wordt willekeurig één van de niveaus binnen ${topic.title.toLowerCase()} gekozen. Handig als algehele toetsvoorbereiding.</li>`;
     el.uitlegExample.textContent = '';
     el.uitlegBox.hidden = false;
     return;
   }
-  const lvl = LEVELS.find((l) => l.id === state.selectedLevel);
+  const lvl = topic.levels.find((l) => l.id === state.selectedLevel);
   el.uitlegTitle.textContent = `${lvl.id}. ${lvl.title}`;
   el.uitlegList.innerHTML = lvl.uitleg.map((line) => `<li>${line}</li>`).join('');
   el.uitlegExample.textContent = lvl.example;
@@ -198,28 +246,26 @@ function selectMode(mode) {
 }
 
 function updateStartButton() {
-  el.startBtn.disabled = state.selectedLevel === null || state.selectedMode === null;
+  el.startBtn.disabled = state.selectedTopic === null || state.selectedLevel === null || state.selectedMode === null;
 }
 
 function renderStatsBox() {
   const stats = loadStats();
   const lines = [];
 
-  Object.entries(stats.bestToets)
-    .sort((a, b) => Number(a[0]) - Number(b[0]))
-    .forEach(([id, best]) => {
-      lines.push(`Beste toetsscore ${levelName(Number(id))}: ${best.score}/${best.total} (${best.date})`);
-    });
+  Object.entries(stats.bestToets).forEach(([key, best]) => {
+    const [topicId, levelId] = key.split(':');
+    lines.push(`Beste toetsscore ${levelName(topicId, Number(levelId))}: ${best.score}/${best.total} (${best.date})`);
+  });
 
-  Object.entries(stats.mistakes || {})
-    .sort((a, b) => Number(a[0]) - Number(b[0]))
-    .forEach(([id, mistakeCounts]) => {
-      const entries = Object.values(mistakeCounts);
-      if (entries.length === 0) return;
-      const top = entries.reduce((best, m) => (m.count > best.count ? m : best));
-      if (top.count < 2) return; // pas tonen als het patroon zich echt herhaalt
-      lines.push(`Veelgemaakte denkfout bij ${levelName(Number(id))}: “${top.title}” (${top.count}×)`);
-    });
+  Object.entries(stats.mistakes || {}).forEach(([key, mistakeCounts]) => {
+    const [topicId, levelId] = key.split(':');
+    const entries = Object.values(mistakeCounts);
+    if (entries.length === 0) return;
+    const top = entries.reduce((best, m) => (m.count > best.count ? m : best));
+    if (top.count < 2) return; // pas tonen als het patroon zich echt herhaalt
+    lines.push(`Veelgemaakte denkfout bij ${levelName(topicId, Number(levelId))}: “${top.title}” (${top.count}×)`);
+  });
 
   el.statsBox.innerHTML = lines.join('<br>');
   el.resetBtn.hidden = !hasAnyStats(stats);
@@ -239,17 +285,18 @@ el.resetBtn.addEventListener('click', () => {
 
 // --- Sessie starten -------------------------------------------------------------
 
-function makeProblem(levelId) {
-  return levelId === MIXED_ID ? generateMixedProblem() : generateProblem(levelId);
+function makeProblem(topicId, levelId) {
+  return levelId === MIXED_ID ? generateMixedProblem(topicId) : generateProblem(topicId, levelId);
 }
 
 function startSession() {
-  const { selectedLevel, selectedMode } = state;
+  const { selectedTopic, selectedLevel, selectedMode } = state;
   if (selectedMode === 'toets') {
     const questions = [];
-    for (let i = 0; i < TOETS_LENGTH; i++) questions.push(makeProblem(selectedLevel));
+    for (let i = 0; i < TOETS_LENGTH; i++) questions.push(makeProblem(selectedTopic, selectedLevel));
     state.session = {
       mode: 'toets',
+      topic: selectedTopic,
       level: selectedLevel,
       questions,
       index: 0,
@@ -258,10 +305,11 @@ function startSession() {
   } else {
     state.session = {
       mode: 'oefenen',
+      topic: selectedTopic,
       level: selectedLevel,
       correct: 0,
       wrong: 0,
-      current: makeProblem(selectedLevel),
+      current: makeProblem(selectedTopic, selectedLevel),
       pendingFocusTip: null,
     };
   }
@@ -279,10 +327,13 @@ function currentProblem() {
 function renderProblem() {
   const s = state.session;
   const problem = currentProblem();
+  const topic = TOPICS.find((t) => t.id === problem.topic);
+  const lvl = topic?.levels.find((l) => l.id === problem.level);
 
-  el.problemLevelLabel.textContent =
-    problem.level === undefined ? '' : `Niveau ${problem.level}: ${LEVELS.find((l) => l.id === problem.level)?.title ?? ''}`;
+  el.problemLevelLabel.textContent = topic ? `${topic.title}${lvl ? ` – niveau ${lvl.id}: ${lvl.title}` : ''}` : '';
   el.problemText.textContent = problem.text;
+  el.answerLabel.textContent = problem.inputLabel || 'Antwoord:';
+  el.answerInput.placeholder = problem.inputPlaceholder || '';
   el.answerInput.value = '';
   el.answerInput.disabled = false;
   el.feedback.hidden = true;
@@ -347,9 +398,8 @@ function checkCurrentAnswer() {
   el.nextBtn.hidden = false;
   el.nextBtn.textContent = s.mode === 'toets' && s.index === s.questions.length - 1 ? 'Bekijk resultaat' : 'Volgende →';
 
-  const levelForStats = problem.level;
-  recordAnswer(levelForStats, isCorrect);
-  if (diagnosis) recordMistake(levelForStats, diagnosis);
+  recordAnswer(problem.topic, problem.level, isCorrect);
+  if (diagnosis) recordMistake(problem.topic, problem.level, diagnosis);
 
   if (s.mode === 'toets') {
     s.results.push({ problem, userInput, isCorrect, diagnosis });
@@ -372,7 +422,7 @@ function goToNext() {
     }
     s.index += 1;
   } else {
-    s.current = makeProblem(s.level);
+    s.current = makeProblem(s.topic, s.level);
   }
   renderProblem();
 }
@@ -380,7 +430,7 @@ function goToNext() {
 function finishToets() {
   const s = state.session;
   const score = s.results.filter((r) => r.isCorrect).length;
-  recordToetsResult(s.level, score, s.questions.length);
+  recordToetsResult(s.topic, s.level, score, s.questions.length);
 
   el.resultsSummary.textContent = `Je hebt ${score} van de ${s.questions.length} opgaven goed (${Math.round((score / s.questions.length) * 100)}%).`;
   el.resultsList.innerHTML = s.results
@@ -437,6 +487,7 @@ function showScreen(name) {
   el.practiceScreen.hidden = name !== 'practice';
   el.resultsScreen.hidden = name !== 'results';
   if (name === 'setup') {
+    renderTopicList();
     renderLevelList();
     renderStatsBox();
   }
@@ -445,6 +496,7 @@ function showScreen(name) {
 
 // --- Init -------------------------------------------------------------
 
+renderTopicList();
 renderLevelList();
 renderStatsBox();
 updateUitlegBox();
