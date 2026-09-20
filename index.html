@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiskunde Oefentool – 3 vwo</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <h1>Wiskunde Oefentool <span>3 vwo</span></h1>
+  <p class="subtitle">Onderwerp: Vergelijkingen oplossen</p>
+</header>
+
+<main class="app-main">
+
+  <!-- Startscherm: niveau en modus kiezen -->
+  <section id="setup-screen" class="screen">
+    <h2>Kies een niveau</h2>
+    <div id="level-list" class="level-list"></div>
+
+    <div id="level-uitleg" class="uitleg-box" hidden>
+      <h3 id="uitleg-title"></h3>
+      <ul id="uitleg-list"></ul>
+      <p id="uitleg-example" class="example"></p>
+    </div>
+
+    <h2>Kies een modus</h2>
+    <div class="mode-list">
+      <button class="mode-btn" data-mode="oefenen">
+        <strong>Oefenen</strong>
+        <span>Zoveel opgaven als je wilt, met directe feedback en hints.</span>
+      </button>
+      <button class="mode-btn" data-mode="toets">
+        <strong>Toets</strong>
+        <span>10 opgaven achter elkaar, net als bij een echte toets. Aan het eind zie je je score.</span>
+      </button>
+    </div>
+
+    <button id="start-btn" class="primary-btn" disabled>Start</button>
+
+    <div id="stats-box" class="stats-box"></div>
+  </section>
+
+  <!-- Oefen-/toetsscherm -->
+  <section id="practice-screen" class="screen" hidden>
+    <div class="practice-topbar">
+      <button id="stop-btn" class="link-btn">&larr; Terug naar overzicht</button>
+      <div id="progress-indicator"></div>
+    </div>
+
+    <div class="problem-card">
+      <p id="problem-level-label" class="problem-level-label"></p>
+      <p id="problem-text" class="problem-text"></p>
+
+      <label for="answer-input" class="answer-label">Antwoord (x = ...):</label>
+      <input type="text" id="answer-input" class="answer-input" autocomplete="off" placeholder="bijv. 4 of -2,5 of -3, 5">
+
+      <div id="feedback" class="feedback" hidden></div>
+
+      <div id="steps-box" class="steps-box" hidden>
+        <h3>Uitwerking</h3>
+        <ol id="steps-list"></ol>
+      </div>
+
+      <div class="problem-actions">
+        <button id="hint-btn" class="secondary-btn">Laat uitwerking zien</button>
+        <button id="check-btn" class="primary-btn">Controleer</button>
+        <button id="next-btn" class="primary-btn" hidden>Volgende &rarr;</button>
+      </div>
+    </div>
+
+    <div id="session-score" class="session-score"></div>
+  </section>
+
+  <!-- Resultatenscherm (na een toets) -->
+  <section id="results-screen" class="screen" hidden>
+    <h2>Toetsresultaat</h2>
+    <p id="results-summary" class="results-summary"></p>
+    <ol id="results-list" class="results-list"></ol>
+    <button id="results-back-btn" class="primary-btn">Terug naar overzicht</button>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <p>Oefentool voor toetsvoorbereiding &middot; wiskunde 3 vwo</p>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
