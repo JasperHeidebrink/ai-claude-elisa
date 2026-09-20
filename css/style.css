@@ -69,6 +69,12 @@ body {
   gap: 0.6rem;
 }
 
+.level-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 .level-btn {
   display: block;
   width: 100%;
