@@ -1,19 +1,32 @@
-import { LEVELS, generateProblem, generateMixedProblem, checkAnswer, formatAnswer } from './generators.js';
+import {
+  LEVELS,
+  generateProblem,
+  generateMixedProblem,
+  checkAnswer,
+  diagnoseMistake,
+  formatAnswer,
+  MISTAKE_TIPS,
+} from './generators.js';
 
 const STORAGE_KEY = 'wiskunde3vwo-vergelijkingen-v1';
 const TOETS_LENGTH = 10;
 const MIXED_ID = 0; // pseudo-niveau: gemengd door elkaar
+
+// Deze diagnose-ids zijn geen echt herkend denkpatroon (leeg antwoord of
+// "vergelijk maar met de uitwerking") en tellen daarom niet mee als
+// veelgemaakte fout in de statistieken.
+const UNTRACKED_MISTAKE_IDS = new Set(['algemeen', 'geen-antwoord']);
 
 // --- Voortgang opslaan (localStorage) --------------------------------------
 
 function loadStats() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { levels: {}, bestToets: {} };
+    if (!raw) return { levels: {}, bestToets: {}, mistakes: {} };
     const parsed = JSON.parse(raw);
-    return { levels: parsed.levels || {}, bestToets: parsed.bestToets || {} };
+    return { levels: parsed.levels || {}, bestToets: parsed.bestToets || {}, mistakes: parsed.mistakes || {} };
   } catch (e) {
-    return { levels: {}, bestToets: {} };
+    return { levels: {}, bestToets: {}, mistakes: {} };
   }
 }
 
@@ -31,6 +44,19 @@ function recordAnswer(levelId, wasCorrect) {
   if (!stats.levels[key]) stats.levels[key] = { correct: 0, wrong: 0 };
   if (wasCorrect) stats.levels[key].correct += 1;
   else stats.levels[key].wrong += 1;
+  saveStats(stats);
+}
+
+function recordMistake(levelId, diagnosis) {
+  if (!diagnosis || UNTRACKED_MISTAKE_IDS.has(diagnosis.id)) return;
+  const stats = loadStats();
+  const key = String(levelId);
+  if (!stats.mistakes[key]) stats.mistakes[key] = {};
+  const existing = stats.mistakes[key][diagnosis.id];
+  stats.mistakes[key][diagnosis.id] = {
+    title: diagnosis.title,
+    count: existing ? existing.count + 1 : 1,
+  };
   saveStats(stats);
 }
 
@@ -71,9 +97,13 @@ const el = {
   stopBtn: document.getElementById('stop-btn'),
   progressIndicator: document.getElementById('progress-indicator'),
   problemLevelLabel: document.getElementById('problem-level-label'),
+  focusTip: document.getElementById('focus-tip'),
   problemText: document.getElementById('problem-text'),
   answerInput: document.getElementById('answer-input'),
   feedback: document.getElementById('feedback'),
+  mistakeFeedback: document.getElementById('mistake-feedback'),
+  mistakeTitle: document.getElementById('mistake-title'),
+  mistakeText: document.getElementById('mistake-text'),
   stepsBox: document.getElementById('steps-box'),
   stepsList: document.getElementById('steps-list'),
   hintBtn: document.getElementById('hint-btn'),
@@ -156,14 +186,24 @@ function updateStartButton() {
 
 function renderStatsBox() {
   const stats = loadStats();
-  const bestEntries = Object.entries(stats.bestToets);
-  if (bestEntries.length === 0) {
-    el.statsBox.textContent = '';
-    return;
-  }
-  const lines = bestEntries
+  const lines = [];
+
+  Object.entries(stats.bestToets)
     .sort((a, b) => Number(a[0]) - Number(b[0]))
-    .map(([id, best]) => `Beste toetsscore ${levelName(Number(id))}: ${best.score}/${best.total} (${best.date})`);
+    .forEach(([id, best]) => {
+      lines.push(`Beste toetsscore ${levelName(Number(id))}: ${best.score}/${best.total} (${best.date})`);
+    });
+
+  Object.entries(stats.mistakes || {})
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .forEach(([id, mistakeCounts]) => {
+      const entries = Object.values(mistakeCounts);
+      if (entries.length === 0) return;
+      const top = entries.reduce((best, m) => (m.count > best.count ? m : best));
+      if (top.count < 2) return; // pas tonen als het patroon zich echt herhaalt
+      lines.push(`Veelgemaakte denkfout bij ${levelName(Number(id))}: “${top.title}” (${top.count}×)`);
+    });
+
   el.statsBox.innerHTML = lines.join('<br>');
 }
 
@@ -195,6 +235,7 @@ function startSession() {
       correct: 0,
       wrong: 0,
       current: makeProblem(selectedLevel),
+      pendingFocusTip: null,
     };
   }
   showScreen('practice');
@@ -219,11 +260,23 @@ function renderProblem() {
   el.answerInput.disabled = false;
   el.feedback.hidden = true;
   el.feedback.className = 'feedback';
+  el.mistakeFeedback.hidden = true;
   el.stepsBox.hidden = true;
   el.stepsList.innerHTML = problem.steps.map((step) => `<li>${step}</li>`).join('');
   el.checkBtn.hidden = false;
+  el.checkBtn.disabled = false;
   el.nextBtn.hidden = true;
+  el.hintBtn.hidden = false;
   el.hintBtn.textContent = 'Laat uitwerking zien';
+
+  if (s.mode === 'oefenen' && s.pendingFocusTip) {
+    const tip = MISTAKE_TIPS[s.pendingFocusTip.id] || s.pendingFocusTip.explanation;
+    el.focusTip.innerHTML = `<strong>Let op bij deze opgave</strong>Vorige keer ging het mis met: ${s.pendingFocusTip.title.toLowerCase()}. ${tip}`;
+    el.focusTip.hidden = false;
+    s.pendingFocusTip = null;
+  } else {
+    el.focusTip.hidden = true;
+  }
 
   if (s.mode === 'toets') {
     el.progressIndicator.textContent = `Vraag ${s.index + 1} van ${s.questions.length}`;
@@ -241,12 +294,26 @@ function checkCurrentAnswer() {
   const problem = currentProblem();
   const userInput = el.answerInput.value;
   const isCorrect = checkAnswer(problem, userInput);
+  const diagnosis = isCorrect ? null : diagnoseMistake(problem, userInput);
 
   el.feedback.hidden = false;
   el.feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
   el.feedback.textContent = isCorrect
     ? 'Goed zo!'
     : `Helaas, niet goed. Het juiste antwoord is: ${formatAnswer(problem)}.`;
+
+  if (diagnosis) {
+    el.mistakeFeedback.hidden = false;
+    el.mistakeTitle.textContent = `Wat ging er waarschijnlijk mis? ${diagnosis.title}`;
+    el.mistakeText.textContent = diagnosis.explanation;
+  } else {
+    el.mistakeFeedback.hidden = true;
+  }
+
+  // Altijd de volledige uitwerking tonen, zodat duidelijk is hoe de opgave
+  // wél gemaakt had moeten worden - niet alleen op verzoek via de hint-knop.
+  el.stepsBox.hidden = false;
+  el.hintBtn.hidden = true;
 
   el.answerInput.disabled = true;
   el.checkBtn.hidden = true;
@@ -255,13 +322,15 @@ function checkCurrentAnswer() {
 
   const levelForStats = problem.level;
   recordAnswer(levelForStats, isCorrect);
+  if (diagnosis) recordMistake(levelForStats, diagnosis);
 
   if (s.mode === 'toets') {
-    s.results.push({ problem, userInput, isCorrect });
+    s.results.push({ problem, userInput, isCorrect, diagnosis });
   } else {
     if (isCorrect) s.correct += 1;
     else s.wrong += 1;
     el.sessionScore.textContent = `Score: ${s.correct} goed, ${s.wrong} fout`;
+    s.pendingFocusTip = diagnosis && !UNTRACKED_MISTAKE_IDS.has(diagnosis.id) ? diagnosis : null;
   }
 
   el.nextBtn.focus();
@@ -291,12 +360,17 @@ function finishToets() {
     .map((r, i) => {
       const cls = r.isCorrect ? 'r-correct' : 'r-incorrect';
       const yourAnswer = r.userInput.trim() === '' ? '(geen antwoord)' : r.userInput;
+      const mistakeHtml =
+        !r.isCorrect && r.diagnosis
+          ? `<div class="r-mistake">Wat ging er waarschijnlijk mis? <strong>${r.diagnosis.title}.</strong> ${r.diagnosis.explanation}</div>`
+          : '';
       return `
         <li>
           <div class="r-question">${i + 1}. ${r.problem.text}</div>
           <div class="r-your-answer ${cls}">${r.isCorrect ? '✔' : '✘'} Jouw antwoord: ${yourAnswer}${
         r.isCorrect ? '' : ` — Juiste antwoord: ${formatAnswer(r.problem)}`
       }</div>
+          ${mistakeHtml}
         </li>
       `;
     })

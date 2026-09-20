@@ -88,7 +88,33 @@ function genLevel1() {
     steps.push(`${a}x = ${c - b}`);
   }
   steps.push(`x = (${c - b}) : ${a} = ${xt}`);
-  return { text, level: 1, isSingle: true, answer: xt, steps };
+
+  const mistakes = [
+    {
+      id: 'niet-gedeeld',
+      title: 'Niet gedeeld door de coëfficiënt',
+      explanation: `Je bent gestopt bij "${a}x = ${c - b}", maar bent vergeten om daarna nog door ${a} te delen om x alleen te krijgen.`,
+      value: c - b,
+    },
+  ];
+  if (b !== 0) {
+    mistakes.push(
+      {
+        id: 'teken-niet-omgedraaid',
+        title: 'Teken niet omgedraaid',
+        explanation: `Je verplaatste ${fmtTerm(b)} niet goed naar de andere kant. Als een getal naar de andere kant van het =-teken gaat, verandert het teken: van + wordt -, en van - wordt +.`,
+        value: (c + b) / a,
+      },
+      {
+        id: 'los-getal-genegeerd',
+        title: 'Het losse getal genegeerd',
+        explanation: `Het lijkt erop dat je de ${fmtTerm(b)} niet hebt meegenomen. Werk eerst het losse getal weg, en deel dan pas door ${a}.`,
+        value: c / a,
+      }
+    );
+  }
+
+  return { text, level: 1, isSingle: true, answer: xt, steps, mistakes };
 }
 
 function genLevel2() {
@@ -113,7 +139,31 @@ function genLevel2() {
     steps.push(`${fmtCoefX(diff)} = ${d - b}`);
   }
   steps.push(`x = (${d - b}) : ${diff} = ${xt}`);
-  return { text, level: 2, isSingle: true, answer: xt, steps };
+
+  const mistakes = [
+    {
+      id: 'verkeerde-coefficient',
+      title: 'Door de verkeerde coëfficiënt gedeeld',
+      explanation: `Je deelde door ${a} (de coëfficiënt vóór het verplaatsen), maar nadat je ${c}x van beide kanten hebt afgetrokken, is de coëfficiënt van x nog maar ${diff}. Deel door ${diff}, niet door ${a}.`,
+      value: a === 0 ? null : (d - b) / a,
+    },
+    {
+      id: 'x-term-verkeerd-verplaatst',
+      title: 'De x-term verkeerd verplaatst',
+      explanation: `Je hebt ${c}x er waarschijnlijk bij opgeteld in plaats van van beide kanten afgetrokken. Om de x-termen samen te voegen, trek je ${c}x van beide kanten af: dat geeft (${a} - ${c})x, dus ${diff}x.`,
+      value: a + c === 0 ? null : (d - b) / (a + c),
+    },
+  ];
+  if (b !== 0) {
+    mistakes.push({
+      id: 'teken-niet-omgedraaid',
+      title: 'Teken niet omgedraaid',
+      explanation: `Je verplaatste ${fmtTerm(b)} niet goed naar de andere kant. Als een getal naar de andere kant van het =-teken gaat, verandert het teken.`,
+      value: (d + b) / diff,
+    });
+  }
+
+  return { text, level: 2, isSingle: true, answer: xt, steps, mistakes: mistakes.filter((m) => m.value !== null) };
 }
 
 function genLevel3() {
@@ -130,7 +180,31 @@ function genLevel3() {
     steps.push(`${a}x = ${c - ab}`);
   }
   steps.push(`x = (${c - ab}) : ${a} = ${xt}`);
-  return { text, level: 3, isSingle: true, answer: xt, steps };
+
+  const mistakes = [
+    {
+      id: 'haakjes-niet-goed-weggewerkt',
+      title: 'Haakjes niet goed weggewerkt',
+      explanation: `${a}(x ${fmtTerm(b)}) betekent dat je ${a} met álles binnen de haakjes vermenigvuldigt: ${a}x ${fmtTerm(ab)}. Je hebt waarschijnlijk alleen de x vermenigvuldigd en het getal ${b} laten staan.`,
+      value: (c - b) / a,
+    },
+    {
+      id: 'niet-gedeeld',
+      title: 'Niet gedeeld door de coëfficiënt',
+      explanation: `Je bent gestopt bij "${a}x = ${c - ab}", maar bent vergeten om daarna nog door ${a} te delen.`,
+      value: c - ab,
+    },
+  ];
+  if (ab !== 0) {
+    mistakes.push({
+      id: 'teken-niet-omgedraaid',
+      title: 'Teken niet omgedraaid',
+      explanation: `Na het wegwerken van de haakjes moest je ${fmtTerm(ab)} naar de andere kant brengen. Daarbij verandert het teken.`,
+      value: (c + ab) / a,
+    });
+  }
+
+  return { text, level: 3, isSingle: true, answer: xt, steps, mistakes };
 }
 
 function genLevel4() {
@@ -148,7 +222,31 @@ function genLevel4() {
   ];
   if (b !== 0) steps.push(`x = ${ac} ${b >= 0 ? '-' : '+'} ${Math.abs(b)}`);
   steps.push(`x = ${xt}`);
-  return { text, level: 4, isSingle: true, answer: xt, steps };
+
+  const mistakes = [
+    {
+      id: 'niet-vermenigvuldigd',
+      title: 'Niet met de noemer vermenigvuldigd',
+      explanation: `Om van de breuk af te komen moet je beide kanten met de noemer (${a}) vermenigvuldigen: x ${fmtTerm(b)} = ${a} × ${c}. Het lijkt erop dat je dat niet hebt gedaan.`,
+      value: c - b,
+    },
+    {
+      id: 'gedeeld-in-plaats-van-vermenigvuldigd',
+      title: 'Gedeeld in plaats van vermenigvuldigd',
+      explanation: `Je hebt waarschijnlijk door ${a} gedeeld in plaats van ermee vermenigvuldigd. Bij een breuk x/${a} = ${c} moet je met ${a} vermenigvuldigen om x vrij te maken.`,
+      value: a === 0 ? null : c / a - b,
+    },
+  ];
+  if (b !== 0) {
+    mistakes.push({
+      id: 'teken-niet-omgedraaid',
+      title: 'Teken niet omgedraaid',
+      explanation: `Je verplaatste ${fmtTerm(b)} niet goed naar de andere kant. Als een getal naar de andere kant van het =-teken gaat, verandert het teken.`,
+      value: ac + b,
+    });
+  }
+
+  return { text, level: 4, isSingle: true, answer: xt, steps, mistakes: mistakes.filter((m) => m.value !== null) };
 }
 
 function genLevel5() {
@@ -169,7 +267,21 @@ function genLevel5() {
   ];
 
   const answer = r1 === r2 ? [r1] : [r1, r2].sort((x, y) => x - y);
-  return { text, level: 5, isSingle: answer.length === 1, answer, steps };
+
+  const mistakes = [];
+  if (r1 !== r2) {
+    const flipped = [-r1, -r2].sort((x, y) => x - y);
+    if (flipped[0] !== flipped[1]) {
+      mistakes.push({
+        id: 'teken-oplossingen-omgedraaid',
+        title: 'Teken van de oplossingen omgedraaid',
+        explanation: `Bij (x ${fmtTerm(-r1)})(x ${fmtTerm(-r2)}) = 0 geldt x = ${r1} en x = ${r2} (met het tegenovergestelde teken van wat er in de factor staat), niet ${flipped[0]} en ${flipped[1]}.`,
+        value: flipped,
+      });
+    }
+  }
+
+  return { text, level: 5, isSingle: answer.length === 1, answer, steps, mistakes };
 }
 
 const GENERATORS = {
@@ -229,6 +341,95 @@ export function checkAnswer(problem, userInput) {
   if (parts.length !== problem.answer.length) return false;
   const sorted = [...parts].sort((a, b) => a - b);
   return problem.answer.every((v, i) => Math.abs(v - sorted[i]) < TOLERANCE);
+}
+
+// --- Foutpatronen herkennen -------------------------------------------------
+
+// Algemene tip per niveau, gebruikt als een fout antwoord niet overeenkomt
+// met een van de specifiek herkende foutpatronen hierboven.
+const MISTAKE_FALLBACK = {
+  1: 'Reken de opgave rustig opnieuw uit, stap voor stap: eerst het losse getal wegwerken, dan pas delen. Vergelijk elke stap met de uitwerking hieronder.',
+  2: 'Zet eerst alle x-termen aan één kant en alle losse getallen aan de andere kant, stap voor stap. Vergelijk je aanpak met de uitwerking hieronder.',
+  3: 'Controleer of je de haakjes goed hebt weggewerkt: vermenigvuldig het getal vóór de haakjes met élke term binnen de haakjes. Vergelijk daarna met de uitwerking hieronder.',
+  4: 'Controleer of je eerst beide kanten met de noemer hebt vermenigvuldigd voordat je verder rekende. Vergelijk daarna met de uitwerking hieronder.',
+  5: 'Ontbind eerst in twee factoren die vermenigvuldigd de losse term geven en opgeteld de x-term. Vergelijk daarna met de uitwerking hieronder.',
+};
+
+// Algemene (niet-instantie-specifieke) herinnering per herkend denkpatroon,
+// te gebruiken als tip vóórdat de leerling aan een volgende, vergelijkbare
+// opgave begint.
+export const MISTAKE_TIPS = {
+  'teken-niet-omgedraaid': 'Let op het teken: als je een term naar de andere kant van het =-teken brengt, verandert + in - en - in +.',
+  'niet-gedeeld': 'Vergeet aan het eind niet om nog door de coëfficiënt vóór de x te delen.',
+  'los-getal-genegeerd': 'Neem élke term uit de vergelijking mee in je berekening, ook de losse getallen.',
+  'verkeerde-coefficient': 'Bepaal pas ná het samenvoegen van de x-termen door welk getal je moet delen.',
+  'x-term-verkeerd-verplaatst': 'Als je een x-term naar de andere kant verplaatst, trek je hem af aan beide kanten (niet optellen).',
+  'haakjes-niet-goed-weggewerkt': 'Vermenigvuldig het getal vóór de haakjes met élke term binnen de haakjes, niet alleen met de x.',
+  'niet-vermenigvuldigd': 'Vermenigvuldig eerst beide kanten met de noemer om van de breuk af te komen.',
+  'gedeeld-in-plaats-van-vermenigvuldigd': 'Om een breuk weg te werken, vermenigvuldig je met de noemer — je deelt er niet door.',
+  'maar-een-oplossing': 'Een ontbonden kwadratische vergelijking (x - p)(x - q) = 0 heeft meestal twéé oplossingen: zoek ze allebei.',
+  'teken-oplossingen-omgedraaid': 'Bij de factor (x - p) is de oplossing x = p, niet x = -p. Check steeds het teken.',
+};
+
+function fallbackMistake(level) {
+  return {
+    id: 'algemeen',
+    title: 'Vergelijk met de uitwerking',
+    explanation: MISTAKE_FALLBACK[level] || 'Vergelijk je berekening stap voor stap met de uitwerking hieronder.',
+  };
+}
+
+// Probeert te herkennen welk denkpatroon tot een fout antwoord heeft geleid,
+// door het leerling-antwoord te vergelijken met bekende, veelgemaakte
+// rekenfouten voor dit type opgave (zie de `mistakes`-lijst per generator).
+// Geeft altijd een uitleg terug (met een generieke tip als er geen specifiek
+// patroon herkend is), zodat de leerling altijd feedback krijgt.
+export function diagnoseMistake(problem, userInput) {
+  const mistakes = problem.mistakes || [];
+
+  if (problem.isSingle) {
+    const value = parseAnswer(userInput);
+    if (value === null) {
+      return {
+        id: 'geen-antwoord',
+        title: 'Geen geldig antwoord ingevuld',
+        explanation: 'Vul een getal in, bijvoorbeeld 4 of -2,5.',
+      };
+    }
+    const match = mistakes.find((m) => typeof m.value === 'number' && Math.abs(m.value - value) < TOLERANCE);
+    return match || fallbackMistake(problem.level);
+  }
+
+  const parts = String(userInput)
+    .toLowerCase()
+    .split(/of|,|;/)
+    .map((p) => parseAnswer(p))
+    .filter((v) => v !== null);
+
+  if (parts.length === 0) {
+    return {
+      id: 'geen-antwoord',
+      title: 'Geen geldig antwoord ingevuld',
+      explanation: 'Vul beide x-waarden in, gescheiden door een komma, bijvoorbeeld "2, -3".',
+    };
+  }
+
+  if (parts.length === 1 && problem.answer.some((a) => Math.abs(a - parts[0]) < TOLERANCE)) {
+    return {
+      id: 'maar-een-oplossing',
+      title: 'Maar één van de twee oplossingen gevonden',
+      explanation: `x = ${parts[0]} klopt, maar er is nog een tweede oplossing. Een kwadratische vergelijking die je ontbindt in twee verschillende factoren heeft twee x-waarden: als (x - p)(x - q) = 0, dan is x = p óf x = q.`,
+    };
+  }
+
+  const sorted = [...parts].sort((a, b) => a - b);
+  const match = mistakes.find(
+    (m) =>
+      Array.isArray(m.value) &&
+      m.value.length === sorted.length &&
+      m.value.every((v, i) => Math.abs(v - sorted[i]) < TOLERANCE)
+  );
+  return match || fallbackMistake(problem.level);
 }
 
 export function formatAnswer(problem) {

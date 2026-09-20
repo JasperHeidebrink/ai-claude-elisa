@@ -283,6 +283,42 @@ body {
   color: var(--bad);
 }
 
+.focus-tip {
+  background: #fff6e0;
+  border: 1px solid #f0d998;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.focus-tip strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.mistake-feedback {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  background: #fff1e0;
+  border: 1px solid #f0c98f;
+}
+
+.mistake-feedback .mistake-title {
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+  color: #8a4b00;
+}
+
+.mistake-feedback p {
+  margin: 0;
+}
+
+.mistake-feedback p + p {
+  margin-top: 0.3rem;
+}
+
 .steps-box {
   margin-top: 1rem;
   background: #f7f9fc;
@@ -356,6 +392,15 @@ body {
 
 .results-list .r-incorrect {
   color: var(--bad);
+}
+
+.results-list .r-mistake {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: #8a4b00;
+  background: #fff1e0;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
 }
 
 .app-footer {
